@@ -36,7 +36,7 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	root := "enron_mail/maildir/allen-p/_sent_mail/9" //path
+	root := os.Args[1] //path
 	var wg sync.WaitGroup
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -46,7 +46,6 @@ func main() {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				// email := readByByte(path, 1024*100)
 				email := readByLine(path)
 				data = append(data, map[string]interface{}{
 					"index": map[string]interface{}{"_index": "enron_mail"},
