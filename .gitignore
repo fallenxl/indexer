@@ -1,0 +1,5 @@
+data
+**/enron_mail
+**/data.ndjson
+**/log
+**/**/node_modules
