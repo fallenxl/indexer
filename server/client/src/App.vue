@@ -1,50 +1,40 @@
 <template>
-  <form
-    class="bg-slate-800 p-4 flex justify-center items-center"
-    :action="handleSearch"
-    @click.prevent="onSubmit"
-  >
-    <input class="" v-model="search" type="text" />
-    <!-- <input type="submit" value="search" @click="handleSearch"> -->
-    <button @click="handleSearch">Search</button>
+  <!-- Header -->
+  <form class="bg-gray-600 p-4 grid grid-cols-3 grid-rows-1 shadow-sm" @submit.prevent="handleSearch">
+  <h1 class="ml-20 font-medium text-white text-xl">Santhz <span class="font-light text-base">mail</span></h1>
+    <div class="flex align-middle justify-center col-start-2 col-end-3">
+      <input class="bg-gray-200 rounded-full px-3 py-1 text-sm text-gray-700 w-60 " v-model="search" type="text" />
+      <input class="ml-2 text-base rounded-sm text-gray-700 cursor-pointer" type="submit"  @click="handleSearch" value="🔍" >
+    </div>
   </form>
-
-  <div class="table w-full ...">
-    <div class="table-header-group ...">
-      <div class="table-row">
-        <div class="table-cell text-left ...">From</div>
-        <div class="table-cell text-left ...">To</div>
-        <div class="table-cell text-left ...">Subject</div>
+  <!-- mail -->
+  <section class="grid grid-cols-6 px-4 py-2 rounded-sm">
+    <div class=" grid grid-cols-3 col-start-2 col-end-6 shadow-sm">
+      <div class="bg-gray-100 text-sm font-medium text-gray-500 p-2 grid grid-cols-3 row row-span-1 col-start-1 col-end-4">
+        <span >From</span>
+        <span >To</span>
+        <span >Subject</span>
       </div>
+      <EmailView v-for="{_source} in mails" :key="_source._id" :email="_source" />
+      
     </div>
-    
-    <div class="table-row-group">
-      <div
-        class="table-row item"
-        v-for="{ _source } in data"
-        v-bind:key="_source._id"
-        @click="getBody(_source.body)"
-      >
-        <div class="table-cell ...">{{ _source.from }}</div>
-        <div class="table-cell ...">{{ _source.to }}</div>
-        <div class="table-cell ...">{{ _source.subject }}</div>
-        
-        
-      </div>
-    </div>
-  </div>
+  </section>
 </template>
 
 <script>
+import EmailView from './components/Email.vue'
 import axios from "axios";
+
 export default {
   name: "App",
+  components:{
+    EmailView
+  },
   data() {
     return {
       URL: "http://localhost:4001",
       search: "",
-      data: null,
-      body: ""
+      mails: null,
     };
   },
   async mounted() {
@@ -53,31 +43,26 @@ export default {
     const {
       hits: { hits },
     } = json;
-    this.data = hits;
+    this.mails = hits;
   },
   methods: {
     async handleSearch() {
-      let response = await axios.get(`http://localhost:4001/${this.search}`);
+      let response = await axios.get(`${this.URL}/${this.search}`);
       let json = JSON.parse(response.data);
       const {
         hits: { hits },
       } = json;
-      this.data = hits;
+      this.mails = hits;
       this.body = ""
       console.log(this.URL);
-    },
-    getBody(body){
-      this.body = body;
     }
   },
 };
 </script>
 
 <style>
-li {
-  list-style: none;
-}
-.item{
-  cursor: pointer;
-}
+  input{
+    outline: none;
+    border: none;
+  }
 </style>

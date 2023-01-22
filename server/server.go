@@ -13,6 +13,50 @@ import (
 	"github.com/go-chi/render"
 )
 
+const PORT = ":4000"
+
+func main() {
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	})
+	r := chi.NewRouter()
+	r.Use(cors.Handler)
+	r.Use(middleware.Logger)
+
+	r.Get("/{term}", getDocument)
+	r.Get("/", getAllDocuments)
+
+	fmt.Printf("Server is running on port %v", PORT)
+	err := http.ListenAndServe(PORT, r)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func getAllDocuments(w http.ResponseWriter, r *http.Request) {
+	body, err := fetchApi("", "alldocuments")
+	if err != nil {
+		log.Fatal(err)
+	}
+	render.JSON(w, r, body)
+}
+
+func getDocument(w http.ResponseWriter, r *http.Request) {
+	term := chi.URLParam(r, "term")
+	body, err := fetchApi(term, "term")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	render.JSON(w, r, body)
+}
+
 func query(str string, t string) (string, error) {
 	body := fmt.Sprintf(`{"search_type": "%s",
         "query":
@@ -27,12 +71,12 @@ func query(str string, t string) (string, error) {
 	return body, nil
 }
 
-func httpGet(str string, t string) (string, error) {
+func fetchApi(str string, t string) (string, error) {
 	query, err := query(str, t)
 	if err != nil {
 		log.Fatal("The query is empty")
 	}
-	req, err := http.NewRequest("POST", "http://localhost:4080/api/enron_mails_test/_search", strings.NewReader(query))
+	req, err := http.NewRequest("POST", "http://localhost:4080/api/enron_mail/_search", strings.NewReader(query))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,40 +95,4 @@ func httpGet(str string, t string) (string, error) {
 		log.Fatal(err)
 	}
 	return string(body), nil
-}
-
-func main() {
-	cors := cors.New(cors.Options{
-		AllowedOrigins: []string{"*"},
-		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
-	})
-	r := chi.NewRouter()
-	r.Use(cors.Handler)
-	r.Use(middleware.Logger)
-
-	r.Get("/{term}", func(w http.ResponseWriter, r *http.Request) {
-		term := chi.URLParam(r, "term")
-		body, err := httpGet(term, "term")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		render.JSON(w, r, body)
-	})
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		body, err := httpGet("", "matchall")
-		if err != nil {
-			log.Fatal(err)
-		}
-		render.JSON(w, r, body)
-	})
-
-	fmt.Println("Server is running on port 3000")
-	http.ListenAndServe(":4001", r)
-
 }
