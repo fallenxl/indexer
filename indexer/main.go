@@ -58,7 +58,7 @@ const (
 func main() {
 	f, err := os.Create("log/cpu.prof")
 	if err != nil {
-		fmt.Printf("Cannot create the file err: %v", err)
+		fmt.Printf("No se pudo crear el archivo err: %v", err)
 	}
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
@@ -69,13 +69,8 @@ func main() {
 	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
 			wg.Add(1)
-
-			go func() {
-				wg.Add(1)
-				go readByByte(path, &wg)
-				defer wg.Done()
-
-			}()
+			go readByByte(path, &wg)
+			defer wg.Done()
 
 		}
 		return nil
@@ -93,11 +88,11 @@ func readByByte(path string, wg *sync.WaitGroup) error {
 	var body []string
 
 	defer wg.Done()
-	f := filePool.Get().(*os.File)
-	defer filePool.Put(f)
+	file := filePool.Get().(*os.File)
+	defer filePool.Put(file)
 
 	var err error
-	f, err = os.Open(path)
+	f, err := os.Open(path)
 	if err != nil {
 		panic(err)
 	}
@@ -195,7 +190,7 @@ func sendFileChunk() {
 	fileSize := fileInfo.Size()
 
 	// Crear un buffer para leer el archivo
-	buffer := make([]byte, 64*1024*1024)
+	buffer := make([]byte, 1024*1024)
 
 	// Crear una nueva solicitud HTTP POST
 	req, _ := http.NewRequest("POST", url, nil)
