@@ -26,6 +26,11 @@ type Email struct {
 /*
  * Sync Pool
  */
+var EmailPool = sync.Pool{
+	New: func() interface{} {
+		return new(Email)
+	},
+}
 var bufferPool = sync.Pool{
 	New: func() interface{} {
 		return make([]byte, 64*1024)
@@ -42,6 +47,7 @@ var filePool = sync.Pool{
  * Variables
  */
 var data []map[string]interface{}
+var bufferSize = 64 * 1024
 
 const (
 	url      = "http://localhost:4080/api/_bulk"
@@ -65,9 +71,9 @@ func main() {
 			wg.Add(1)
 
 			go func() {
-				defer wg.Done()
 				wg.Add(1)
 				go readByByte(path, &wg)
+				defer wg.Done()
 
 			}()
 
@@ -96,7 +102,7 @@ func readByByte(path string, wg *sync.WaitGroup) error {
 		panic(err)
 	}
 	buffer := bufferPool.Get().([]byte)
-	defer bufferPool.Put(&buffer)
+	defer bufferPool.Put(buffer)
 
 	for {
 		n, err := f.Read(buffer)
@@ -132,17 +138,18 @@ func readByByte(path string, wg *sync.WaitGroup) error {
 }
 
 func emailFormat(lines []string) error {
-	email := Email{
-		From:    strings.Split(lines[2], "From:")[1],
-		To:      strings.Join(strings.Split(lines[3], "To:")[1:], ""),
-		Subject: strings.Join(strings.Split(lines[4], "Subject:")[1:], ""),
-		Body:    strings.Join(lines[15:], ""),
-	}
+	newEmail := EmailPool.Get().(*Email)
+	defer EmailPool.Put(&newEmail)
+
+	newEmail.From = strings.Split(lines[2], "From:")[1]
+	newEmail.To = strings.Join(strings.Split(lines[3], "To:")[1:], "")
+	newEmail.Subject = strings.Join(strings.Split(lines[4], "Subject:")[1:], "")
+	newEmail.Body = strings.Join(lines[15:], "")
 
 	data = append(data, map[string]interface{}{
 		"index": map[string]interface{}{"_index": "enron_test"},
 	}, map[string]interface{}{
-		"from": email.From, "to": email.To, "subject": email.Subject, "body": email.Body,
+		"from": newEmail.From, "to": newEmail.To, "subject": newEmail.Subject, "body": newEmail.Body,
 	})
 	return nil
 }
